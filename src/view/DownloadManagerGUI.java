@@ -5,10 +5,15 @@ import model.Downloader;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Point;
+import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.DataFlavor;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.net.URL;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
 import javax.swing.BorderFactory;
@@ -470,6 +475,11 @@ public class DownloadManagerGUI extends javax.swing.JFrame implements Observer {
         jBtnSetting.setText("Setting");
         jBtnSetting.setMaximumSize(new java.awt.Dimension(73, 30));
         jBtnSetting.setMinimumSize(new java.awt.Dimension(73, 30));
+        jBtnSetting.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jBtnSettingActionPerformed(evt);
+            }
+        });
 
         jLabel8.setText("Search");
 
@@ -685,7 +695,7 @@ public class DownloadManagerGUI extends javax.swing.JFrame implements Observer {
     }//GEN-LAST:event_jLabelHideMouseExited
 
     private void jLabelCloseMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabelCloseMouseClicked
-        getInstance().setVisible(false);
+        exit();
     }//GEN-LAST:event_jLabelCloseMouseClicked
 
     private void jLabelHideMousePressed(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabelHideMousePressed
@@ -721,6 +731,10 @@ public class DownloadManagerGUI extends javax.swing.JFrame implements Observer {
         // TODO add your handling code here:
     }//GEN-LAST:event_jCbLocatingDefaultActionPerformed
 
+    private void jBtnSettingActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jBtnSettingActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_jBtnSettingActionPerformed
+
     // Called when table row selection changes.
     private void tableSelectionChanged() {
 //        System.out.println("table selection changed");
@@ -742,25 +756,21 @@ public class DownloadManagerGUI extends javax.swing.JFrame implements Observer {
             updateButtons();
         }
     }
-    
+
     @Override
     public void update(Observable o, Object arg) {
-        if(arg!=null) System.out.println("!=null - " + arg.getClass().getName());
-        System.out.println(o.getClass().getName());
-        if (arg instanceof ClipboardTextListener) {
-            ClipboardTextListener listener = (ClipboardTextListener) o;
-            JOptionPane.showMessageDialog(this, listener.getClipboardText());
-            
-//            if(!getInstance().isVisible()){
-//                
-//            }
-            
-            
-            
-        } else {
-            // Update buttons if the selected download has changed.
-            if (mSelectedDownloader != null && mSelectedDownloader.equals(o)) {
-                updateButtons();
+        if (mSelectedDownloader != null && mSelectedDownloader.equals(o)) {
+            updateButtons();
+        } 
+        if(o instanceof ClipboardTextListener){
+            System.out.println(((ClipboardTextListener) o).getClipboardText());
+            String url = arg.toString();
+            int index = url.lastIndexOf(".");
+            if(index < 0) return;
+            String end = url.substring(index,url.length());
+            System.out.println(end);
+            if(DownloadManager.listFilter.contains(end.toUpperCase())){
+                JOptionPane.showConfirmDialog(this, url);
             }
         }
     }
@@ -852,8 +862,6 @@ public class DownloadManagerGUI extends javax.swing.JFrame implements Observer {
      */
     public static void main(String args[]) {
 
-        new Thread(new ClipboardTextListener()).start();
-
         // set to user's look and feel
         try {
 //            UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
@@ -864,6 +872,11 @@ public class DownloadManagerGUI extends javax.swing.JFrame implements Observer {
         java.awt.EventQueue.invokeLater(() -> {
             getInstance().setVisible(true);
         });
+
+        // lắng nghe clipboard thay đổi
+        ClipboardTextListener clipboardListener = new ClipboardTextListener();
+        clipboardListener.addObserver(getInstance());
+        new Thread(clipboardListener).start();
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
