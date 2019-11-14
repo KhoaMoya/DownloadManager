@@ -31,6 +31,7 @@ public class ClipboardResouceListener implements Observer {
         ClipboardTextListener listener = new ClipboardTextListener();
         listener.addObserver(ClipboardResouceListener.this);
         
+        // httpabc.zip
         if (!SystemTray.isSupported()) {
             System.out.println("System tray is not supported !");
             return;
@@ -92,7 +93,7 @@ public class ClipboardResouceListener implements Observer {
     public void update(Observable o, Object object) {
         if (object instanceof URL) {
             URL url  = (URL) object;
-            int option = JOptionPane.showConfirmDialog(null, "Bạn có muốn download file từ đường dẫn:\n" + url.toString(), "Download with clipboard", JOptionPane.YES_NO_OPTION);
+            int option = JOptionPane.showConfirmDialog(null, DownloadManagerGUI.getInstance().getPanelAskDownload(url.toString()), "Download with clipboard", JOptionPane.YES_NO_OPTION);
             if (option == JOptionPane.YES_OPTION) {
                 if(mDownloadManagerGUI==null){
                     mDownloadManagerGUI = new DownloadManagerGUI();
@@ -103,6 +104,8 @@ public class ClipboardResouceListener implements Observer {
                 
                 mDownloadManagerGUI.addDownloadFromURL(url);
             }
+//           "Bạn có muốn download file từ đường dẫn:\n" + url.toString() http://youtube.com/khoa.zip
+//            DownloadManagerGUI.getInstance().getPanelAskDownload()
         }
     }
 
@@ -155,4 +158,5 @@ public class ClipboardResouceListener implements Observer {
         }
 
     }
+    
 }

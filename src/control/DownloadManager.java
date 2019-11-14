@@ -9,6 +9,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import javax.swing.JOptionPane;
 import static model.Downloader.DOWNLOADING;
 import view.DownloadManagerGUI;
@@ -22,6 +23,11 @@ public class DownloadManager {
     private static int DEFAULT_NUM_CONN_PER_DOWNLOAD = 8;
     public static String DEFAULT_OUTPUT_FOLDER = "D:/downloadManager/";
     public static String DEFAULT_HISTORY_FILE = "history.txt";
+    public static ArrayList<String> listFilter;
+    public String[] filters = {".3GP", ".7Z", ".AAC", ".ACE", ".AIF", ".ARJ",
+        ".ASF", ".AVI", ".BIN", ".BZ2", ".EXE", ".GZ", ".GZIP", ".IMG", ".ISO", ".LZH", ".M4A",
+        ".M4V", ".MKV", ".MOV", ".MP3", ".MP4", ".MPA", ".MPE", ".MPEG", ".MPG", ".MSI", ".MSU", ".OGG",
+        ".OGV", ",PDF", ".PLJ", ".PPS", ".PPT", ".QT", ".RAR", ".TAR", ".TIF", ".TIFF", ".TFF", ".WAV", ".WMA", ".WMV", ".Z", ".ZIP"};
 
     // Member variables
     private int mNumConnPerDownload;
@@ -30,9 +36,10 @@ public class DownloadManager {
     /**
      * Protected constructor
      */
-    protected DownloadManager() {
+    public DownloadManager() {
         mNumConnPerDownload = DEFAULT_NUM_CONN_PER_DOWNLOAD;
         mDownloadList = readHistory();
+        listFilter = new ArrayList<>(Arrays.asList(filters));
     }
 
     /**
@@ -166,27 +173,34 @@ public class DownloadManager {
     public static URL verifyURL(String fileURL) {
         // Only allow HTTP URLs.
         if (fileURL.toLowerCase().startsWith("https://") || fileURL.toLowerCase().startsWith("http://")) {
-            // Verify format of URL.
-            URL verifiedUrl = null;
-            try {
-                verifiedUrl = new URL(fileURL);
-            } catch (Exception e) {
+            int index = fileURL.lastIndexOf(".");
+            if (index < 0) {
                 return null;
             }
+            String end = fileURL.substring(index, fileURL.length());
+            System.out.println(end);
+            if (DownloadManager.listFilter.contains(end.toUpperCase())) {
+                // Verify format of URL.
+                URL verifiedUrl = null;
+                try {
+                    verifiedUrl = new URL(fileURL);
+                } catch (Exception e) {
+                    return null;
+                }
 
-            // Make sure URL specifies a file.
-            if (verifiedUrl.getFile().length() < 2) {
-                return null;
+                // Make sure URL specifies a file.
+                if (verifiedUrl.getFile().length() < 2) {
+                    return null;
+                }
+                return verifiedUrl;
             }
-
-            return verifiedUrl;
-        } else {
-            return null;
         }
+        return null;
     }
-    
+
     /**
      * Convert from second to day:hour:minute:second
+     *
      * @param time second: long
      * @return string day:hour:minute:second
      */
@@ -215,6 +229,7 @@ public class DownloadManager {
 
     /**
      * Convert from byte to GB/MB/KB
+     *
      * @param size : byte
      * @return stirng GB/MB/KB
      */

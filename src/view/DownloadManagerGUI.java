@@ -5,15 +5,10 @@ import model.Downloader;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Point;
-import java.awt.Toolkit;
-import java.awt.datatransfer.Clipboard;
-import java.awt.datatransfer.DataFlavor;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.net.URL;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
 import javax.swing.BorderFactory;
@@ -22,6 +17,7 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 
 import javax.swing.JOptionPane;
+import javax.swing.JPanel;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
 import javax.swing.UIManager;
@@ -29,13 +25,13 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import model.HttpDownloader;
-import service.ClipboardTextListener;
 
 public class DownloadManagerGUI extends javax.swing.JFrame implements Observer {
 
     private final DownloadTableTotal mTableModel;
     private HttpDownloader mSelectedDownloader;
     private boolean mIsClearing;
+    public static String mSaveLocation;
     public static DownloadManagerGUI mDownloadManagerGUI;
 
     /**
@@ -48,6 +44,9 @@ public class DownloadManagerGUI extends javax.swing.JFrame implements Observer {
     }
 
     private void initialize() {
+
+//        ClipboardTextListener clipboardListener = new ClipboardTextListener();
+//        clipboardListener.addObserver(DownloadManagerGUI.this);
         getRootPane().setBorder(BorderFactory.createMatteBorder(1, 1, 1, 1, new java.awt.Color(189, 189, 189)));
         // Set up table
         this.setLocationRelativeTo(null);
@@ -65,7 +64,7 @@ public class DownloadManagerGUI extends javax.swing.JFrame implements Observer {
                 int row = table.rowAtPoint(point);
                 if (mouseEvent.getClickCount() == 2 && table.getSelectedRow() != -1) {
                     mSelectedDownloader = DownloadManager.getInstance().getDownloadList().get(row);
-                    clickDefaultDownload();
+                    clickDetailDownload();
                 }
             }
         });
@@ -105,18 +104,34 @@ public class DownloadManagerGUI extends javax.swing.JFrame implements Observer {
 
         jbnAdd.requestFocus();
         jFileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-        jtxURL.setText("https://download.oracle.com/otn_software/nt/instantclient/19300/instantclient-basic-nt-19.3.0.0.0dbru.zip");
+//        jtxURL.setText("https://download.oracle.com/otn_software/nt/instantclient/19300/instantclient-basic-nt-19.3.0.0.0dbru.zip");
 //        jtxURL.setText("http://localhost/Qtnpcap-master.zip");
-        jTxtLocation.setText(DownloadManager.DEFAULT_OUTPUT_FOLDER);
+        jTxtLocation.setText(mSaveLocation);
 
         DragListener dragListener = new DragListener(this, jPanelBar);
         jPanelBar.addMouseListener(dragListener);
         jPanelBar.addMouseMotionListener(dragListener);
     }
 
-    public void clickDefaultDownload() {
+    public void clickDetailDownload() {
         JFrame frame = new DownloadDetailGUI(mSelectedDownloader);
         frame.setVisible(true);
+    }
+
+    public void addDownloadFromURL(URL urlDownload){
+        jtxURL.setText(urlDownload.toString());
+        HttpDownloader download = DownloadManager.getInstance().createDownload(urlDownload, mSaveLocation);
+        mTableModel.addNewDownload(download);
+    }
+    
+    public void addDownloadFromText() {
+        URL urlDownload = DownloadManager.getInstance().verifyURL(jtxURL.getText());
+        if (urlDownload != null) {
+            HttpDownloader download = DownloadManager.getInstance().createDownload(urlDownload, jTxtLocation.getText());
+            mTableModel.addNewDownload(download);
+        } else {
+            JOptionPane.showMessageDialog(this, "Invalid Download URL", "Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     /**
@@ -132,6 +147,12 @@ public class DownloadManagerGUI extends javax.swing.JFrame implements Observer {
         jPanelRemoveDownload = new javax.swing.JPanel();
         jLabel1 = new javax.swing.JLabel();
         jCheckBoxDeleteFileInDisk = new javax.swing.JCheckBox();
+        jPanelAskDownload = new javax.swing.JPanel();
+        edtSaveLocation = new javax.swing.JTextField();
+        edtAddress = new javax.swing.JTextField();
+        jLabel4 = new javax.swing.JLabel();
+        jLabel10 = new javax.swing.JLabel();
+        btnBrowser = new javax.swing.JButton();
         jCbLocatingDefault = new javax.swing.JCheckBox();
         jLabel3 = new javax.swing.JLabel();
         jbtnBrowser = new javax.swing.JButton();
@@ -188,414 +209,464 @@ public class DownloadManagerGUI extends javax.swing.JFrame implements Observer {
                 .addContainerGap(51, Short.MAX_VALUE))
         );
 
-        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-        setTitle("Download Manager");
-        setBounds(new java.awt.Rectangle(0, 0, 0, 0));
-        setFocusCycleRoot(false);
-        setUndecorated(true);
+        edtSaveLocation.setText("D:\\downloadManager\\");
+            edtSaveLocation.addActionListener(new java.awt.event.ActionListener() {
+                public void actionPerformed(java.awt.event.ActionEvent evt) {
+                    edtSaveLocationActionPerformed(evt);
+                }
+            });
 
-        jCbLocatingDefault.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
-        jCbLocatingDefault.setText("Save as default location");
-        jCbLocatingDefault.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jCbLocatingDefaultActionPerformed(evt);
-            }
-        });
+            jLabel4.setText("Dowload from address ");
 
-        jLabel3.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
-        jLabel3.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/icons8-link-30.png"))); // NOI18N
-        jLabel3.setText("Download URL");
+            jLabel10.setText("Save to");
 
-        jbtnBrowser.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
-        jbtnBrowser.setText("Browser");
-        jbtnBrowser.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jbtnBrowserActionPerformed(evt);
-            }
-        });
+            btnBrowser.setText("Browser");
+            btnBrowser.addActionListener(new java.awt.event.ActionListener() {
+                public void actionPerformed(java.awt.event.ActionEvent evt) {
+                    btnBrowserActionPerformed(evt);
+                }
+            });
 
-        jTxtLocation.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
+            javax.swing.GroupLayout jPanelAskDownloadLayout = new javax.swing.GroupLayout(jPanelAskDownload);
+            jPanelAskDownload.setLayout(jPanelAskDownloadLayout);
+            jPanelAskDownloadLayout.setHorizontalGroup(
+                jPanelAskDownloadLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGroup(jPanelAskDownloadLayout.createSequentialGroup()
+                    .addContainerGap()
+                    .addGroup(jPanelAskDownloadLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addComponent(edtAddress)
+                        .addComponent(jLabel4)
+                        .addComponent(jLabel10)
+                        .addGroup(jPanelAskDownloadLayout.createSequentialGroup()
+                            .addComponent(edtSaveLocation, javax.swing.GroupLayout.PREFERRED_SIZE, 339, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                            .addComponent(btnBrowser)))
+                    .addContainerGap())
+            );
+            jPanelAskDownloadLayout.setVerticalGroup(
+                jPanelAskDownloadLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGroup(jPanelAskDownloadLayout.createSequentialGroup()
+                    .addContainerGap()
+                    .addComponent(jLabel4)
+                    .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                    .addComponent(edtAddress, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                    .addComponent(jLabel10)
+                    .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                    .addGroup(jPanelAskDownloadLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                        .addComponent(edtSaveLocation, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(btnBrowser))
+                    .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+            );
 
-        jLabel2.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
-        jLabel2.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/icons8-folder-30.png"))); // NOI18N
-        jLabel2.setText("Save location");
+            setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+            setTitle("Download Manager");
+            setBounds(new java.awt.Rectangle(0, 0, 0, 0));
+            setFocusCycleRoot(false);
+            setUndecorated(true);
 
-        jbnResume.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
-        jbnResume.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/icons8-play-20.png"))); // NOI18N
-        jbnResume.setText("Resume");
-        jbnResume.setEnabled(false);
-        jbnResume.setFocusCycleRoot(true);
-        jbnResume.setHorizontalAlignment(javax.swing.SwingConstants.LEADING);
-        jbnResume.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
-        jbnResume.setIconTextGap(10);
-        jbnResume.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jbnResumeActionPerformed(evt);
-            }
-        });
+            jCbLocatingDefault.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
+            jCbLocatingDefault.setText("Save as default location");
+            jCbLocatingDefault.addActionListener(new java.awt.event.ActionListener() {
+                public void actionPerformed(java.awt.event.ActionEvent evt) {
+                    jCbLocatingDefaultActionPerformed(evt);
+                }
+            });
 
-        jbnCancel.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
-        jbnCancel.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/icons8-stop-20.png"))); // NOI18N
-        jbnCancel.setText("Cancel");
-        jbnCancel.setEnabled(false);
-        jbnCancel.setFocusCycleRoot(true);
-        jbnCancel.setHorizontalAlignment(javax.swing.SwingConstants.LEADING);
-        jbnCancel.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
-        jbnCancel.setIconTextGap(10);
-        jbnCancel.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jbnCancelActionPerformed(evt);
-            }
-        });
+            jLabel3.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
+            jLabel3.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/icons8-link-30.png"))); // NOI18N
+            jLabel3.setText("Download URL");
 
-        jbnRemove.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
-        jbnRemove.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/icons8-remove-20.png"))); // NOI18N
-        jbnRemove.setText("Remove");
-        jbnRemove.setEnabled(false);
-        jbnRemove.setFocusCycleRoot(true);
-        jbnRemove.setHorizontalAlignment(javax.swing.SwingConstants.LEADING);
-        jbnRemove.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
-        jbnRemove.setIconTextGap(10);
-        jbnRemove.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jbnRemoveActionPerformed(evt);
-            }
-        });
+            jbtnBrowser.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
+            jbtnBrowser.setText("Browser");
+            jbtnBrowser.addActionListener(new java.awt.event.ActionListener() {
+                public void actionPerformed(java.awt.event.ActionEvent evt) {
+                    jbtnBrowserActionPerformed(evt);
+                }
+            });
 
-        jbnPause.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
-        jbnPause.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/icons8-pause-20.png"))); // NOI18N
-        jbnPause.setText("Pause");
-        jbnPause.setEnabled(false);
-        jbnPause.setFocusCycleRoot(true);
-        jbnPause.setHorizontalAlignment(javax.swing.SwingConstants.LEADING);
-        jbnPause.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
-        jbnPause.setIconTextGap(10);
-        jbnPause.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jbnPauseActionPerformed(evt);
-            }
-        });
+            jTxtLocation.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
 
-        jScrollPane1.setBackground(new java.awt.Color(255, 255, 255));
+            jLabel2.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
+            jLabel2.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/icons8-folder-30.png"))); // NOI18N
+            jLabel2.setText("Save location");
 
-        jtbDownload.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
-        jtbDownload.setModel(mTableModel);
-        jScrollPane1.setViewportView(jtbDownload);
+            jbnResume.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
+            jbnResume.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/icons8-play-20.png"))); // NOI18N
+            jbnResume.setText("Resume");
+            jbnResume.setEnabled(false);
+            jbnResume.setFocusCycleRoot(true);
+            jbnResume.setHorizontalAlignment(javax.swing.SwingConstants.LEADING);
+            jbnResume.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
+            jbnResume.setIconTextGap(10);
+            jbnResume.addActionListener(new java.awt.event.ActionListener() {
+                public void actionPerformed(java.awt.event.ActionEvent evt) {
+                    jbnResumeActionPerformed(evt);
+                }
+            });
 
-        jbnAdd.setForeground(new java.awt.Color(51, 51, 51));
-        jbnAdd.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/icons8-downloads-50.png"))); // NOI18N
-        jbnAdd.setText("Download");
-        jbnAdd.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
-        jbnAdd.setIconTextGap(0);
-        jbnAdd.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
-        jbnAdd.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jbnAddActionPerformed(evt);
-            }
-        });
+            jbnCancel.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
+            jbnCancel.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/icons8-stop-20.png"))); // NOI18N
+            jbnCancel.setText("Cancel");
+            jbnCancel.setEnabled(false);
+            jbnCancel.setFocusCycleRoot(true);
+            jbnCancel.setHorizontalAlignment(javax.swing.SwingConstants.LEADING);
+            jbnCancel.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
+            jbnCancel.setIconTextGap(10);
+            jbnCancel.addActionListener(new java.awt.event.ActionListener() {
+                public void actionPerformed(java.awt.event.ActionEvent evt) {
+                    jbnCancelActionPerformed(evt);
+                }
+            });
 
-        jtxURL.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
-        jtxURL.setToolTipText("");
-        jtxURL.setCursor(new java.awt.Cursor(java.awt.Cursor.TEXT_CURSOR));
-        jtxURL.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jtxURLActionPerformed(evt);
-            }
-        });
+            jbnRemove.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
+            jbnRemove.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/icons8-remove-20.png"))); // NOI18N
+            jbnRemove.setText("Remove");
+            jbnRemove.setEnabled(false);
+            jbnRemove.setFocusCycleRoot(true);
+            jbnRemove.setHorizontalAlignment(javax.swing.SwingConstants.LEADING);
+            jbnRemove.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
+            jbnRemove.setIconTextGap(10);
+            jbnRemove.addActionListener(new java.awt.event.ActionListener() {
+                public void actionPerformed(java.awt.event.ActionEvent evt) {
+                    jbnRemoveActionPerformed(evt);
+                }
+            });
 
-        jbnDetail.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
-        jbnDetail.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/icons8-informatics-20.png"))); // NOI18N
-        jbnDetail.setText("Detail");
-        jbnDetail.setEnabled(false);
-        jbnDetail.setFocusCycleRoot(true);
-        jbnDetail.setHorizontalAlignment(javax.swing.SwingConstants.LEADING);
-        jbnDetail.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
-        jbnDetail.setIconTextGap(10);
-        jbnDetail.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jbnDetailActionPerformed(evt);
-            }
-        });
+            jbnPause.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
+            jbnPause.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/icons8-pause-20.png"))); // NOI18N
+            jbnPause.setText("Pause");
+            jbnPause.setEnabled(false);
+            jbnPause.setFocusCycleRoot(true);
+            jbnPause.setHorizontalAlignment(javax.swing.SwingConstants.LEADING);
+            jbnPause.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
+            jbnPause.setIconTextGap(10);
+            jbnPause.addActionListener(new java.awt.event.ActionListener() {
+                public void actionPerformed(java.awt.event.ActionEvent evt) {
+                    jbnPauseActionPerformed(evt);
+                }
+            });
 
-        jbnOpenFolder.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
-        jbnOpenFolder.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/icons8-opened-folder-20.png"))); // NOI18N
-        jbnOpenFolder.setText("Open in folder");
-        jbnOpenFolder.setEnabled(false);
-        jbnOpenFolder.setFocusCycleRoot(true);
-        jbnOpenFolder.setHorizontalAlignment(javax.swing.SwingConstants.LEADING);
-        jbnOpenFolder.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
-        jbnOpenFolder.setIconTextGap(10);
-        jbnOpenFolder.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jbnOpenFolderActionPerformed(evt);
-            }
-        });
+            jScrollPane1.setBackground(new java.awt.Color(255, 255, 255));
 
-        jbnOpen.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
-        jbnOpen.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/icons8-view-details-20.png"))); // NOI18N
-        jbnOpen.setText("Open");
-        jbnOpen.setEnabled(false);
-        jbnOpen.setFocusCycleRoot(true);
-        jbnOpen.setHorizontalAlignment(javax.swing.SwingConstants.LEADING);
-        jbnOpen.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
-        jbnOpen.setIconTextGap(10);
-        jbnOpen.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jbnOpenActionPerformed(evt);
-            }
-        });
+            jtbDownload.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
+            jtbDownload.setModel(mTableModel);
+            jScrollPane1.setViewportView(jtbDownload);
 
-        jPanelBar.setBackground(new java.awt.Color(189, 189, 189));
-        jPanelBar.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
-            public void mouseDragged(java.awt.event.MouseEvent evt) {
-                jPanelBarMouseDragged(evt);
-            }
-        });
-        jPanelBar.addMouseWheelListener(new java.awt.event.MouseWheelListener() {
-            public void mouseWheelMoved(java.awt.event.MouseWheelEvent evt) {
-                jPanelBarMouseWheelMoved(evt);
-            }
-        });
+            jbnAdd.setForeground(new java.awt.Color(51, 51, 51));
+            jbnAdd.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/icons8_downloads_50.png"))); // NOI18N
+            jbnAdd.setText("Download");
+            jbnAdd.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
+            jbnAdd.setIconTextGap(0);
+            jbnAdd.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
+            jbnAdd.addActionListener(new java.awt.event.ActionListener() {
+                public void actionPerformed(java.awt.event.ActionEvent evt) {
+                    jbnAddActionPerformed(evt);
+                }
+            });
 
-        jLabelClose.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/icon_close_normal.png"))); // NOI18N
-        jLabelClose.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseClicked(java.awt.event.MouseEvent evt) {
-                jLabelCloseMouseClicked(evt);
-            }
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
-                jLabelCloseMouseEntered(evt);
-            }
-            public void mouseExited(java.awt.event.MouseEvent evt) {
-                jLabelCloseMouseExited(evt);
-            }
-        });
+            jtxURL.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
+            jtxURL.setToolTipText("");
+            jtxURL.setCursor(new java.awt.Cursor(java.awt.Cursor.TEXT_CURSOR));
+            jtxURL.addActionListener(new java.awt.event.ActionListener() {
+                public void actionPerformed(java.awt.event.ActionEvent evt) {
+                    jtxURLActionPerformed(evt);
+                }
+            });
 
-        jLabelHide.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/icon_hide.png"))); // NOI18N
-        jLabelHide.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseClicked(java.awt.event.MouseEvent evt) {
-                jLabelHideMouseClicked(evt);
-            }
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
-                jLabelHideMouseEntered(evt);
-            }
-            public void mouseExited(java.awt.event.MouseEvent evt) {
-                jLabelHideMouseExited(evt);
-            }
-            public void mousePressed(java.awt.event.MouseEvent evt) {
-                jLabelHideMousePressed(evt);
-            }
-        });
+            jbnDetail.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
+            jbnDetail.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/icons8-informatics-20.png"))); // NOI18N
+            jbnDetail.setText("Detail");
+            jbnDetail.setEnabled(false);
+            jbnDetail.setFocusCycleRoot(true);
+            jbnDetail.setHorizontalAlignment(javax.swing.SwingConstants.LEADING);
+            jbnDetail.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
+            jbnDetail.setIconTextGap(10);
+            jbnDetail.addActionListener(new java.awt.event.ActionListener() {
+                public void actionPerformed(java.awt.event.ActionEvent evt) {
+                    jbnDetailActionPerformed(evt);
+                }
+            });
 
-        jLabel5.setFont(new java.awt.Font("Tahoma", 1, 15)); // NOI18N
-        jLabel5.setText("Download Manager");
+            jbnOpenFolder.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
+            jbnOpenFolder.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/icons8-opened-folder-20.png"))); // NOI18N
+            jbnOpenFolder.setText("Open in folder");
+            jbnOpenFolder.setEnabled(false);
+            jbnOpenFolder.setFocusCycleRoot(true);
+            jbnOpenFolder.setHorizontalAlignment(javax.swing.SwingConstants.LEADING);
+            jbnOpenFolder.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
+            jbnOpenFolder.setIconTextGap(10);
+            jbnOpenFolder.addActionListener(new java.awt.event.ActionListener() {
+                public void actionPerformed(java.awt.event.ActionEvent evt) {
+                    jbnOpenFolderActionPerformed(evt);
+                }
+            });
 
-        javax.swing.GroupLayout jPanelBarLayout = new javax.swing.GroupLayout(jPanelBar);
-        jPanelBar.setLayout(jPanelBarLayout);
-        jPanelBarLayout.setHorizontalGroup(
-            jPanelBarLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanelBarLayout.createSequentialGroup()
-                .addGap(25, 25, 25)
-                .addComponent(jLabel5)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addComponent(jLabel6)
-                .addGap(0, 0, 0)
-                .addComponent(jLabelHide, javax.swing.GroupLayout.PREFERRED_SIZE, 60, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(0, 0, 0)
-                .addComponent(jLabelClose))
-        );
-        jPanelBarLayout.setVerticalGroup(
-            jPanelBarLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanelBarLayout.createSequentialGroup()
-                .addGroup(jPanelBarLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
-                    .addComponent(jLabel5, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jLabel6, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jLabelClose, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jLabelHide, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addGap(0, 0, Short.MAX_VALUE))
-        );
+            jbnOpen.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
+            jbnOpen.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/icons8-view-details-20.png"))); // NOI18N
+            jbnOpen.setText("Open");
+            jbnOpen.setEnabled(false);
+            jbnOpen.setFocusCycleRoot(true);
+            jbnOpen.setHorizontalAlignment(javax.swing.SwingConstants.LEADING);
+            jbnOpen.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
+            jbnOpen.setIconTextGap(10);
+            jbnOpen.addActionListener(new java.awt.event.ActionListener() {
+                public void actionPerformed(java.awt.event.ActionEvent evt) {
+                    jbnOpenActionPerformed(evt);
+                }
+            });
 
-        jbnRedownload.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
-        jbnRedownload.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/icons8-process-20.png"))); // NOI18N
-        jbnRedownload.setText("Redownload");
-        jbnRedownload.setEnabled(false);
-        jbnRedownload.setFocusCycleRoot(true);
-        jbnRedownload.setHorizontalAlignment(javax.swing.SwingConstants.LEADING);
-        jbnRedownload.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
-        jbnRedownload.setIconTextGap(10);
-        jbnRedownload.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jbnRedownloadActionPerformed(evt);
-            }
-        });
+            jPanelBar.setBackground(new java.awt.Color(189, 189, 189));
+            jPanelBar.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
+                public void mouseDragged(java.awt.event.MouseEvent evt) {
+                    jPanelBarMouseDragged(evt);
+                }
+            });
+            jPanelBar.addMouseWheelListener(new java.awt.event.MouseWheelListener() {
+                public void mouseWheelMoved(java.awt.event.MouseWheelEvent evt) {
+                    jPanelBarMouseWheelMoved(evt);
+                }
+            });
 
-        jPanel1.setBackground(new java.awt.Color(255, 255, 255));
-        jPanel1.setBorder(javax.swing.BorderFactory.createEtchedBorder());
+            jLabelClose.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/icon_close_normal.png"))); // NOI18N
+            jLabelClose.addMouseListener(new java.awt.event.MouseAdapter() {
+                public void mouseClicked(java.awt.event.MouseEvent evt) {
+                    jLabelCloseMouseClicked(evt);
+                }
+                public void mouseEntered(java.awt.event.MouseEvent evt) {
+                    jLabelCloseMouseEntered(evt);
+                }
+                public void mouseExited(java.awt.event.MouseEvent evt) {
+                    jLabelCloseMouseExited(evt);
+                }
+            });
 
-        jLabel7.setFont(new java.awt.Font("Tahoma", 1, 14)); // NOI18N
-        jLabel7.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel7.setText("Categories");
+            jLabelHide.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/icon_hide.png"))); // NOI18N
+            jLabelHide.addMouseListener(new java.awt.event.MouseAdapter() {
+                public void mouseClicked(java.awt.event.MouseEvent evt) {
+                    jLabelHideMouseClicked(evt);
+                }
+                public void mouseEntered(java.awt.event.MouseEvent evt) {
+                    jLabelHideMouseEntered(evt);
+                }
+                public void mouseExited(java.awt.event.MouseEvent evt) {
+                    jLabelHideMouseExited(evt);
+                }
+                public void mousePressed(java.awt.event.MouseEvent evt) {
+                    jLabelHideMousePressed(evt);
+                }
+            });
 
-        javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
-        jPanel3.setLayout(jPanel3Layout);
-        jPanel3Layout.setHorizontalGroup(
-            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 184, Short.MAX_VALUE)
-            .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                .addGroup(jPanel3Layout.createSequentialGroup()
-                    .addGap(0, 0, Short.MAX_VALUE)
-                    .addComponent(jLabel7)
-                    .addGap(0, 0, Short.MAX_VALUE)))
-        );
-        jPanel3Layout.setVerticalGroup(
-            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 30, Short.MAX_VALUE)
-            .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                .addGroup(jPanel3Layout.createSequentialGroup()
-                    .addGap(0, 0, Short.MAX_VALUE)
-                    .addComponent(jLabel7)
-                    .addGap(0, 0, Short.MAX_VALUE)))
-        );
+            jLabel5.setFont(new java.awt.Font("Tahoma", 1, 15)); // NOI18N
+            jLabel5.setText("Download Manager");
 
-        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
-        jPanel1.setLayout(jPanel1Layout);
-        jPanel1Layout.setHorizontalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel1Layout.createSequentialGroup()
-                .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-        );
-        jPanel1Layout.setVerticalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel1Layout.createSequentialGroup()
-                .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(0, 0, Short.MAX_VALUE))
-        );
+            javax.swing.GroupLayout jPanelBarLayout = new javax.swing.GroupLayout(jPanelBar);
+            jPanelBar.setLayout(jPanelBarLayout);
+            jPanelBarLayout.setHorizontalGroup(
+                jPanelBarLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanelBarLayout.createSequentialGroup()
+                    .addGap(25, 25, 25)
+                    .addComponent(jLabel5)
+                    .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jLabel6)
+                    .addGap(0, 0, 0)
+                    .addComponent(jLabelHide, javax.swing.GroupLayout.PREFERRED_SIZE, 60, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGap(0, 0, 0)
+                    .addComponent(jLabelClose))
+            );
+            jPanelBarLayout.setVerticalGroup(
+                jPanelBarLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGroup(jPanelBarLayout.createSequentialGroup()
+                    .addGroup(jPanelBarLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                        .addComponent(jLabel5, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(jLabel6, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(jLabelClose, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(jLabelHide, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addGap(0, 0, Short.MAX_VALUE))
+            );
 
-        jBtnSetting.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/icons8-gear-20.png"))); // NOI18N
-        jBtnSetting.setText("Setting");
-        jBtnSetting.setMaximumSize(new java.awt.Dimension(73, 30));
-        jBtnSetting.setMinimumSize(new java.awt.Dimension(73, 30));
-        jBtnSetting.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jBtnSettingActionPerformed(evt);
-            }
-        });
+            jbnRedownload.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
+            jbnRedownload.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/icons8-process-20.png"))); // NOI18N
+            jbnRedownload.setText("Redownload");
+            jbnRedownload.setEnabled(false);
+            jbnRedownload.setFocusCycleRoot(true);
+            jbnRedownload.setHorizontalAlignment(javax.swing.SwingConstants.LEADING);
+            jbnRedownload.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
+            jbnRedownload.setIconTextGap(10);
+            jbnRedownload.addActionListener(new java.awt.event.ActionListener() {
+                public void actionPerformed(java.awt.event.ActionEvent evt) {
+                    jbnRedownloadActionPerformed(evt);
+                }
+            });
 
-        jLabel8.setText("Search");
+            jPanel1.setBackground(new java.awt.Color(255, 255, 255));
+            jPanel1.setBorder(javax.swing.BorderFactory.createEtchedBorder());
 
-        jLabel9.setText("Sort by");
+            jLabel7.setFont(new java.awt.Font("Tahoma", 1, 14)); // NOI18N
+            jLabel7.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+            jLabel7.setText("Categories");
 
-        jCbSort.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+            javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
+            jPanel3.setLayout(jPanel3Layout);
+            jPanel3Layout.setHorizontalGroup(
+                jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGap(0, 184, Short.MAX_VALUE)
+                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel3Layout.createSequentialGroup()
+                        .addGap(0, 0, Short.MAX_VALUE)
+                        .addComponent(jLabel7)
+                        .addGap(0, 0, Short.MAX_VALUE)))
+            );
+            jPanel3Layout.setVerticalGroup(
+                jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGap(0, 30, Short.MAX_VALUE)
+                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel3Layout.createSequentialGroup()
+                        .addGap(0, 0, Short.MAX_VALUE)
+                        .addComponent(jLabel7)
+                        .addGap(0, 0, Short.MAX_VALUE)))
+            );
 
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
-        layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanelBar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-            .addGroup(layout.createSequentialGroup()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                        .addComponent(jBtnSetting, javax.swing.GroupLayout.PREFERRED_SIZE, 188, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED))
-                    .addGroup(layout.createSequentialGroup()
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(layout.createSequentialGroup()
-                                .addGap(62, 62, 62)
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                    .addComponent(jLabel2)
-                                    .addComponent(jLabel3)))
-                            .addGroup(layout.createSequentialGroup()
-                                .addGap(20, 20, 20)
-                                .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, 188, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                        .addGap(10, 10, 10)))
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addGroup(layout.createSequentialGroup()
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(layout.createSequentialGroup()
-                                .addComponent(jCbLocatingDefault)
-                                .addGap(90, 90, 90))
-                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                                    .addComponent(jtxURL)
-                                    .addComponent(jTxtLocation))
-                                .addGap(10, 10, 10)))
-                        .addComponent(jbtnBrowser, javax.swing.GroupLayout.PREFERRED_SIZE, 91, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(165, 165, 165))
-                    .addGroup(layout.createSequentialGroup()
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                            .addGroup(javax.swing.GroupLayout.Alignment.LEADING, layout.createSequentialGroup()
-                                .addComponent(jLabel8)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(jTxtSearch, javax.swing.GroupLayout.PREFERRED_SIZE, 313, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addGap(30, 30, 30)
-                                .addComponent(jLabel9)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(jCbSort, javax.swing.GroupLayout.PREFERRED_SIZE, 173, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 743, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addGap(20, 20, 20)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                            .addComponent(jbnAdd, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jbnOpenFolder, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jbnOpen, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jbnResume, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jbnCancel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jbnRedownload, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jbnDetail, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jbnPause, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jbnRemove, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
-                .addGap(20, 20, 20))
-        );
-        layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(jPanelBar, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(30, 30, 30)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(jLabel3)
-                            .addComponent(jtxURL, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addGap(10, 10, 10)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                .addComponent(jTxtLocation, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addComponent(jbtnBrowser, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addComponent(jLabel2, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                    .addComponent(jbnAdd))
-                .addGap(6, 6, 6)
-                .addComponent(jCbLocatingDefault)
-                .addGap(18, 18, 18)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(jbnPause, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jbnResume, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jbnCancel, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(10, 10, 10)
-                        .addComponent(jbnRedownload, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(10, 10, 10)
-                        .addComponent(jbnRemove, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(86, 86, 86)
-                        .addComponent(jbnDetail, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jbnOpen, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jbnOpenFolder, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addComponent(jScrollPane1)
-                    .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel8)
-                    .addComponent(jTxtSearch, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabel9)
-                    .addComponent(jCbSort, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jBtnSetting, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(15, 15, 15))
-        );
+            javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
+            jPanel1.setLayout(jPanel1Layout);
+            jPanel1Layout.setHorizontalGroup(
+                jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGroup(jPanel1Layout.createSequentialGroup()
+                    .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+            );
+            jPanel1Layout.setVerticalGroup(
+                jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGroup(jPanel1Layout.createSequentialGroup()
+                    .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGap(0, 0, Short.MAX_VALUE))
+            );
 
-        pack();
-    }// </editor-fold>//GEN-END:initComponents
+            jBtnSetting.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/icons8-gear-20.png"))); // NOI18N
+            jBtnSetting.setText("Setting");
+            jBtnSetting.setMaximumSize(new java.awt.Dimension(73, 30));
+            jBtnSetting.setMinimumSize(new java.awt.Dimension(73, 30));
+            jBtnSetting.addActionListener(new java.awt.event.ActionListener() {
+                public void actionPerformed(java.awt.event.ActionEvent evt) {
+                    jBtnSettingActionPerformed(evt);
+                }
+            });
+
+            jLabel8.setText("Search");
+
+            jLabel9.setText("Sort by");
+
+            jCbSort.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+
+            javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
+            getContentPane().setLayout(layout);
+            layout.setHorizontalGroup(
+                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addComponent(jPanelBar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addGroup(layout.createSequentialGroup()
+                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                            .addComponent(jBtnSetting, javax.swing.GroupLayout.PREFERRED_SIZE, 188, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED))
+                        .addGroup(layout.createSequentialGroup()
+                            .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                .addGroup(layout.createSequentialGroup()
+                                    .addGap(62, 62, 62)
+                                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addComponent(jLabel2)
+                                        .addComponent(jLabel3)))
+                                .addGroup(layout.createSequentialGroup()
+                                    .addGap(20, 20, 20)
+                                    .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, 188, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                            .addGap(10, 10, 10)))
+                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                        .addGroup(layout.createSequentialGroup()
+                            .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                .addGroup(layout.createSequentialGroup()
+                                    .addComponent(jCbLocatingDefault)
+                                    .addGap(90, 90, 90))
+                                .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                                        .addComponent(jtxURL)
+                                        .addComponent(jTxtLocation))
+                                    .addGap(10, 10, 10)))
+                            .addComponent(jbtnBrowser, javax.swing.GroupLayout.PREFERRED_SIZE, 91, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addGap(165, 165, 165))
+                        .addGroup(layout.createSequentialGroup()
+                            .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                                .addGroup(javax.swing.GroupLayout.Alignment.LEADING, layout.createSequentialGroup()
+                                    .addComponent(jLabel8)
+                                    .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                    .addComponent(jTxtSearch, javax.swing.GroupLayout.PREFERRED_SIZE, 313, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addGap(30, 30, 30)
+                                    .addComponent(jLabel9)
+                                    .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                    .addComponent(jCbSort, javax.swing.GroupLayout.PREFERRED_SIZE, 173, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 743, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGap(20, 20, 20)
+                            .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                .addComponent(jbnAdd, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(jbnOpenFolder, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(jbnOpen, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(jbnResume, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(jbnCancel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(jbnRedownload, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(jbnDetail, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(jbnPause, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(jbnRemove, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
+                    .addGap(20, 20, 20))
+            );
+            layout.setVerticalGroup(
+                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGroup(layout.createSequentialGroup()
+                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                        .addGroup(layout.createSequentialGroup()
+                            .addComponent(jPanelBar, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addGap(30, 30, 30)
+                            .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                .addComponent(jLabel3)
+                                .addComponent(jtxURL, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGap(10, 10, 10)
+                            .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                    .addComponent(jTxtLocation, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(jbtnBrowser, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addComponent(jLabel2, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addComponent(jbnAdd))
+                    .addGap(6, 6, 6)
+                    .addComponent(jCbLocatingDefault)
+                    .addGap(18, 18, 18)
+                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                        .addGroup(layout.createSequentialGroup()
+                            .addComponent(jbnPause, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                            .addComponent(jbnResume, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                            .addComponent(jbnCancel, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addGap(10, 10, 10)
+                            .addComponent(jbnRedownload, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addGap(10, 10, 10)
+                            .addComponent(jbnRemove, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addGap(86, 86, 86)
+                            .addComponent(jbnDetail, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                            .addComponent(jbnOpen, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                            .addComponent(jbnOpenFolder, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addComponent(jScrollPane1)
+                        .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                        .addComponent(jLabel8)
+                        .addComponent(jTxtSearch, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(jLabel9)
+                        .addComponent(jCbSort, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(jBtnSetting, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGap(15, 15, 15))
+            );
+
+            pack();
+        }// </editor-fold>//GEN-END:initComponents
 
     private void jbnPauseActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jbnPauseActionPerformed
         mSelectedDownloader.pause();
@@ -639,14 +710,7 @@ public class DownloadManagerGUI extends javax.swing.JFrame implements Observer {
     }//GEN-LAST:event_jbnRemoveActionPerformed
 
     private void jbnAddActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jbnAddActionPerformed
-        URL verifiedUrl = DownloadManager.verifyURL(jtxURL.getText());
-        if (verifiedUrl != null) {
-            HttpDownloader download = DownloadManager.getInstance().createDownload(verifiedUrl, jTxtLocation.getText());
-            mTableModel.addNewDownload(download);
-            jtxURL.setText(""); // reset add text field
-        } else {
-            JOptionPane.showMessageDialog(this, "Invalid Download URL", "Error", JOptionPane.ERROR_MESSAGE);
-        }
+        addDownloadFromText();
     }//GEN-LAST:event_jbnAddActionPerformed
 
     private void jtxURLActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jtxURLActionPerformed
@@ -659,11 +723,12 @@ public class DownloadManagerGUI extends javax.swing.JFrame implements Observer {
             String location = file.getAbsolutePath() + "\\";
             System.out.println("Selected: " + location);
             jTxtLocation.setText(location);
+            mSaveLocation = location;
         }
     }//GEN-LAST:event_jbtnBrowserActionPerformed
 
     private void jbnDetailActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jbnDetailActionPerformed
-        clickDefaultDownload();
+        clickDetailDownload();
     }//GEN-LAST:event_jbnDetailActionPerformed
 
     private void jbnOpenFolderActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jbnOpenFolderActionPerformed
@@ -695,7 +760,7 @@ public class DownloadManagerGUI extends javax.swing.JFrame implements Observer {
     }//GEN-LAST:event_jLabelHideMouseExited
 
     private void jLabelCloseMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabelCloseMouseClicked
-        exit();
+        setVisible(false);
     }//GEN-LAST:event_jLabelCloseMouseClicked
 
     private void jLabelHideMousePressed(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabelHideMousePressed
@@ -735,6 +800,23 @@ public class DownloadManagerGUI extends javax.swing.JFrame implements Observer {
         // TODO add your handling code here:
     }//GEN-LAST:event_jBtnSettingActionPerformed
 
+    private void edtSaveLocationActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_edtSaveLocationActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_edtSaveLocationActionPerformed
+
+    private void btnBrowserActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnBrowserActionPerformed
+        // TODO add your handling code here:
+        int returnVal = jFileChooser.showDialog(this, "Choosen folder");
+        if (returnVal == JFileChooser.APPROVE_OPTION) {
+            File file = jFileChooser.getSelectedFile();
+            String location = file.getAbsolutePath() + "\\";
+            System.out.println("Selected: " + location);
+            edtSaveLocation.setText(location);
+            mSaveLocation = location;
+            jTxtLocation.setText(mSaveLocation);
+        }
+    }//GEN-LAST:event_btnBrowserActionPerformed
+
     // Called when table row selection changes.
     private void tableSelectionChanged() {
 //        System.out.println("table selection changed");
@@ -761,20 +843,9 @@ public class DownloadManagerGUI extends javax.swing.JFrame implements Observer {
     public void update(Observable o, Object arg) {
         if (mSelectedDownloader != null && mSelectedDownloader.equals(o)) {
             updateButtons();
-        } 
-        if(o instanceof ClipboardTextListener){
-            System.out.println(((ClipboardTextListener) o).getClipboardText());
-            String url = arg.toString();
-            int index = url.lastIndexOf(".");
-            if(index < 0) return;
-            String end = url.substring(index,url.length());
-            System.out.println(end);
-            if(DownloadManager.listFilter.contains(end.toUpperCase())){
-                JOptionPane.showConfirmDialog(this, url);
-            }
         }
     }
-
+    
     /**
      * Update buttons' state
      */
@@ -842,14 +913,6 @@ public class DownloadManagerGUI extends javax.swing.JFrame implements Observer {
         }
     }
 
-    /**
-     * Exit and Save history
-     */
-    public void exit() {
-        DownloadManager.getInstance().writeHistory();
-        System.exit(0);
-    }
-
     public static DownloadManagerGUI getInstance() {
         if (mDownloadManagerGUI == null) {
             mDownloadManagerGUI = new DownloadManagerGUI();
@@ -857,14 +920,19 @@ public class DownloadManagerGUI extends javax.swing.JFrame implements Observer {
         return mDownloadManagerGUI;
     }
 
+    public JPanel getPanelAskDownload(String address){
+        edtAddress.setText(address);
+        return jPanelAskDownload;
+    }
+    
     /**
      * @param args the command line arguments
      */
     public static void main(String args[]) {
 
-        // set to user's look and feel
+        //         set to user's look and feel
         try {
-//            UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
+//           UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (Exception e) {
         }
@@ -872,22 +940,22 @@ public class DownloadManagerGUI extends javax.swing.JFrame implements Observer {
         java.awt.EventQueue.invokeLater(() -> {
             getInstance().setVisible(true);
         });
-
-        // lắng nghe clipboard thay đổi
-        ClipboardTextListener clipboardListener = new ClipboardTextListener();
-        clipboardListener.addObserver(getInstance());
-        new Thread(clipboardListener).start();
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton btnBrowser;
+    private javax.swing.JTextField edtAddress;
+    private javax.swing.JTextField edtSaveLocation;
     private javax.swing.JButton jBtnSetting;
     private javax.swing.JCheckBox jCbLocatingDefault;
     private javax.swing.JComboBox<String> jCbSort;
     private javax.swing.JCheckBox jCheckBoxDeleteFileInDisk;
     private javax.swing.JFileChooser jFileChooser;
     private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel jLabel10;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
+    private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel jLabel6;
     private javax.swing.JLabel jLabel7;
@@ -897,6 +965,7 @@ public class DownloadManagerGUI extends javax.swing.JFrame implements Observer {
     private javax.swing.JLabel jLabelHide;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel3;
+    private javax.swing.JPanel jPanelAskDownload;
     private javax.swing.JPanel jPanelBar;
     private javax.swing.JPanel jPanelRemoveDownload;
     private javax.swing.JScrollPane jScrollPane1;

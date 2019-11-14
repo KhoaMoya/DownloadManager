@@ -83,7 +83,7 @@ public abstract class Downloader extends Observable implements Runnable, Seriali
      */
     protected long mTransferRate;
     protected long mTempTranf;
-    
+
     // Contants for block and buffer size
     protected int mBlockSize;
     protected int mBufferSize;
@@ -199,10 +199,11 @@ public abstract class Downloader extends Observable implements Runnable, Seriali
     public String getLog() {
         return log.toString();
     }
-    
-    public String getOutputFolder(){
+
+    public String getOutputFolder() {
         return mOutputFolder;
     }
+
     /**
      * Open downloaded file
      */
@@ -309,11 +310,11 @@ public abstract class Downloader extends Observable implements Runnable, Seriali
     public String getLastTime() {
         return mLastTime;
     }
-    
-    public long getTransferRate(){
+
+    public long getTransferRate() {
         return mTransferRate;
     }
-    
+
     /**
      * Start or resume download
      */
@@ -338,7 +339,7 @@ public abstract class Downloader extends Observable implements Runnable, Seriali
         setChanged();
         notifyObservers();
     }
-    
+
     public ArrayList<DownloadThread> getListDownloadThread() {
         return mListDownloadThread;
     }
@@ -408,5 +409,4 @@ public abstract class Downloader extends Observable implements Runnable, Seriali
             mThread.join();
         }
     }
-
 }

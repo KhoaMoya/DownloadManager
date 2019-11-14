@@ -3,11 +3,9 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
+            <file>file:/C:/Users/khoar/OneDrive/Documents/NetBeansProjects/DownloadManager/src/service/ClipboardResouceListener.java</file>
             <file>file:/C:/Users/khoar/OneDrive/Documents/NetBeansProjects/DownloadManager/src/view/DownloadTableTotal.java</file>
-            <file>file:/C:/Users/khoar/OneDrive/Documents/NetBeansProjects/DownloadManager/src/model/HttpDownloader.java</file>
             <file>file:/C:/Users/khoar/OneDrive/Documents/NetBeansProjects/DownloadManager/src/view/DownloadManagerGUI.java</file>
-            <file>file:/C:/Users/khoar/OneDrive/Documents/NetBeansProjects/DownloadManager/src/service/ClipboardTextListener.java</file>
-            <file>file:/C:/Users/khoar/OneDrive/Documents/NetBeansProjects/DownloadManager/src/model/Downloader.java</file>
         </group>
     </open-files>
 </project-private>

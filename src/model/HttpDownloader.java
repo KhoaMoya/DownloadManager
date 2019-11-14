@@ -27,10 +27,12 @@ public class HttpDownloader extends Downloader implements Serializable {
 
     @Override
     public void run() {
+        // cập nhập lần thời gian bắt đầu/tiếp tục download
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("HH:mm:ss dd/MM/yyyy");
         LocalDateTime now = LocalDateTime.now();
         mLastTime = dtf.format(now);
-        HttpURLConnection conn = null;
+
+        // cập nhập tốc độ download sau mỗi 1s
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -50,6 +52,8 @@ public class HttpDownloader extends Downloader implements Serializable {
                 stateChanged();
             }
         }).start();
+
+        HttpURLConnection conn = null;
         try {
             // Open connection to URL
             conn = (HttpURLConnection) mURL.openConnection();
@@ -58,9 +62,16 @@ public class HttpDownloader extends Downloader implements Serializable {
             // Connect to server
             conn.connect();
 
+            // check accept ranges
+            String acceptRanges = conn.getHeaderField("Accept-Ranges");
+            if (acceptRanges.equals("none")) {
+                mNumConnections = 1;
+            }
+
             // Make sure the response code is in the 200 range.
             if (conn.getResponseCode() / 100 != 2) {
                 error(conn.getResponseCode() + " : " + conn.getResponseMessage());
+                return;
             }
 
             // Check for valid content length.
@@ -81,8 +92,14 @@ public class HttpDownloader extends Downloader implements Serializable {
                 // check whether we have list of download threads or not, if not -> init download
                 if (mListDownloadThread.size() == 0) {
                     if (mFileSize > mMinDownloadSize) {
-                        // downloading size for each thread
-                        int partSize = Math.round(((float) mFileSize / mNumConnections) / mBlockSize) * mBlockSize;
+                        int partSize;
+                        if (mNumConnections == 1) {
+                            // download size for 1 thread
+                            partSize = (int) mFileSize;
+                        } else {
+                            // downloading size for each thread
+                            partSize = Math.round(((float) mFileSize / mNumConnections) / mBlockSize) * mBlockSize;
+                        }
                         addToLog("Part size: " + partSize);
 
                         // start/end Byte for each thread
@@ -179,6 +196,7 @@ public class HttpDownloader extends Downloader implements Serializable {
                 // Make sure the response code is in the 200 range.
                 if (conn.getResponseCode() / 100 != 2) {
                     error(conn.getResponseCode() + " : " + conn.getResponseMessage());
+                    return;
                 }
 
                 // get the input stream

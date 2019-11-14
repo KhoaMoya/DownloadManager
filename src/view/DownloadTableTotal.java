@@ -34,6 +34,7 @@ public class DownloadTableTotal extends AbstractTableModel implements Observer {
         download.addObserver(this);
 
         // Fire table row insertion notification to table.
+        System.out.println((getRowCount() - 1) + " : " +  (getRowCount() - 1));
         fireTableRowsInserted(getRowCount() - 1, getRowCount() - 1);
     }
 
