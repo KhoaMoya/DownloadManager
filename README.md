@@ -6,6 +6,8 @@
 - Download từ clipboard
 - Quản lý file đã download
 
+![Giao diện chính](https://github.com/KhoaMoya/DownloadManager/blob/master/DowloadManagerUI.png)
+
 # Thực hiện
 ### 1. Chia thành nhiều thread để download file ( nếu server cho phép)
 ```java
@@ -16,26 +18,7 @@
                 mNumConnections = 1;
             }
 
-            // Make sure the response code is in the 200 range.
-            if (conn.getResponseCode() / 100 != 2) {
-                error(conn.getResponseCode() + " : " + conn.getResponseMessage());
-                return;
-            }
-
-            // Check for valid content length.
-            int contentLength = conn.getContentLength();
-            if (contentLength < 1) {
-                error("URL is not file");
-                return;
-            }
-
-            if (mFileSize == -1) {
-                mFileSize = contentLength;
-                stateChanged();
-                addToLog("File size: " + mFileSize);
-            }
-
-            // if the state is DOWNLOADING (no error) -> start downloading
+           // if the state is DOWNLOADING (no error) -> start downloading
             if (mState == DOWNLOADING) {
                 // check whether we have list of download threads or not, if not -> init download
                 if (mListDownloadThread.size() == 0) {
@@ -118,20 +101,6 @@
                 }
             } catch (IOException e) {
                 error(e.getLocalizedMessage());
-            } finally {
-                if (raf != null) {
-                    try {
-                        raf.close();
-                    } catch (IOException e) {
-                    }
-                }
-
-                if (in != null) {
-                    try {
-                        in.close();
-                    } catch (IOException e) {
-                    }
-                }
             }
  
  ```
