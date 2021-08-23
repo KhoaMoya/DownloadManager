@@ -1,15 +1,15 @@
 # DownloadManager
 
-# Tính năng
-- Download đa luồng
-- Download từ địa chỉ nhập vào
-- Download từ clipboard
-- Quản lý file đã download
+# Features
+- Download multi thread
+- Download from url
+- Download from clipboard
+- Manage downloaded files
 
-![Giao diện chính](https://github.com/KhoaMoya/DownloadManager/blob/master/DowloadManagerUI.png)
+![Home screen](https://github.com/KhoaMoya/DownloadManager/blob/master/DowloadManagerUI.png)
 
-# Thực hiện
-### 1. Chia thành nhiều thread để download file ( nếu server cho phép)
+# Implementation
+### 1. Split to multi threads to download a file (if server allow)
 ```java
 
             // check accept ranges
@@ -57,7 +57,7 @@
                 }
 ```
 
-### 2. Download từng luồng
+### 2. Downloading on each thread
 ```java
             BufferedInputStream in = null;
             RandomAccessFile raf = null;
@@ -104,9 +104,8 @@
             }
  
  ```
-### 3. Observable, Observer để lắng nghe - cập nhập giao diện
+### 3. Observable, Observer to update UI
 
-Đối tượng phát ra thông điệp khi có thay đổi khi extends Observable
 ```java
 public abstract class Downloader extends Observable{
     /**
@@ -119,7 +118,6 @@ public abstract class Downloader extends Observable{
 }
 ```
 
-Đối tượng lắng nghe đối tượng Observable khi implements Observer 
 ```java
 public class DownloadTableTotal extends AbstractTableModel implements Observer {
 	public void addNewDownload(HttpDownloader download) {
@@ -136,9 +134,9 @@ public class DownloadTableTotal extends AbstractTableModel implements Observer {
     }
 }
 ```
-### 4. SystemTray để chạy ngầm và lắng nghe clipboard thay đổi
+### 4. SystemTray listener change of clipboard
 
-Tạo SystemTray với ảnh
+Create SystemTray with icon
 ```java
 Image image = Toolkit.getDefaultToolkit().getImage(ClipboardResouceListener.class.getResource("/image/icons8_downloads_50.png"));
 
@@ -163,7 +161,7 @@ Image image = Toolkit.getDefaultToolkit().getImage(ClipboardResouceListener.clas
             awtException.printStackTrace();
         }
 ```				
-Lắng nghe clipboard thay đổi
+Listener change of clipboard
 ```java
 java.util.List<DataFlavor> flavors = Arrays.asList(sysClip.getAvailableDataFlavors());
                     if (flavors.contains(DataFlavor.stringFlavor)) {
@@ -181,11 +179,3 @@ java.util.List<DataFlavor> flavors = Arrays.asList(sysClip.getAvailableDataFlavo
                         }
                     }
 ```										
-# Hạn chế/ Đề xuất
-- Hạn chế
-	+ Còn một vài chức năng chưa làm:
-		* Quản lý ( phân loại, tìm kiếm, sắp xếp) file đã download
-		* Cấu hình để dowload 1 file ( giới hạn tốc độ, giới hạn thread)
-- Đề xuất
-	+ Khi download xong, nếu file là file nén thì thêm tùy chọn giải nén + giải nén file theo yêu cầu
-	+ Tích hợp công cụ vào các trình duyệt web để lắng nghe sự kiện khi người dùng click vào một link chứa tài nguyên
